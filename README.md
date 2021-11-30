@@ -56,7 +56,7 @@ The data is stored on medea at `data/CSS-lab-christmas-2021`. The directory incl
 * `tweets` contains the tweets that include a "🤌" (pinched fingers) emoji for all 14 languages between 2019-01-01 and 2021-11-28 (excluding retweets).
 * `sentiment` contains the sentiment of the tweets in the `tweets` directory, characterized with an [xlm-roberta model](https://huggingface.co/cardiffnlp/twitter-xlm-roberta-base-sentiment) fine-tuned for sentimend characterisation.
 
-**NOTE:** The results for the `tweets` and `sentiment` directory are still coming in.
+**NOTE:** The results for `tweets` and `sentiment` for english are still coming in.
 
 ## Downloading the data
 You can download the data by running the following command in your terminal:  
