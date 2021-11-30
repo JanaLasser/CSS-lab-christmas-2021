@@ -66,3 +66,6 @@ This assumes that you are in a directory that includes an empty folder called "d
 If you don't have `rsync` installed, you can install it by running  
 
 `sudo apt install rsync grsync`
+
+## Code
+The code needs Twitter API credentials and a language model to run, which are not included in the repository.
