@@ -53,8 +53,8 @@ And the following emojis:
 ## Data
 The data is stored on medea at `data/CSS-lab-christmas-2021`. The directory includes the following sub-directories:
 * `counts` contains the ocurrences for all 30 hand-emoji available on twitter for 14 languages between 2019-01-01 and 2021-11-28, as well as a "baseline" count (i.e. the number of tweets in that language for a given day).
-* `tweets` contains the tweets that include a "🤌" (pinched fingers) emoji for all 14 languages (excluding retweets)
-* `sentiment` contains the sentiment of the tweets that contained a "🤌" (pinched fingers) emoji for all 14 languages, characterized with an [xlm-roberta model](https://huggingface.co/cardiffnlp/twitter-xlm-roberta-base-sentiment) fine-tuned for sentimend characterisation.
+* `tweets` contains the tweets that include a "🤌" (pinched fingers) emoji for all 14 languages between 2019-01-01 and 2021-11-28 (excluding retweets).
+* `sentiment` contains the sentiment of the tweets in the `tweets` directory, characterized with an [xlm-roberta model](https://huggingface.co/cardiffnlp/twitter-xlm-roberta-base-sentiment) fine-tuned for sentimend characterisation.
 
 **NOTE:** The results for the `tweets` and `sentiment` directory are still coming in.
 
