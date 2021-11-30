@@ -23,6 +23,7 @@ import emoji_resources as er
 # In[41]:
 
 
+emojis = er.emojis
 try:
     lang = sys.argv[1]
     if lang == "-f":
@@ -32,11 +33,12 @@ try:
         test = True
     elif lang in er.languages:
         try:
-            emoji = int(sys.argv[2])
+            emoji = sys.argv[2]
+            emoji = emojis[emoji]
         except IndexError:
             print("no emoji supplied!")
         try:
-            test = int(sys.argv[3])
+            test = sys.argv[3]
             if test == "test":
                 test = True
         except IndexError:
@@ -78,7 +80,7 @@ class InferenceDataset(Dataset):
                     token_type_ids=th.tensor(encoding["token_type_ids"], dtype=th.long))
 
 
-# In[48]:
+# In[ ]:
 
 
 checkpoint = "models/twitter-xlm-roberta-base-sentiment" 
