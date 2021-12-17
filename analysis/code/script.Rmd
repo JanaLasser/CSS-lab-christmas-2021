@@ -1,0 +1,215 @@
+---
+title: "Christmas paper"
+author: "Anna Di Natale"
+date: "12/1/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+#library(arrow)
+library(ggplot2)
+library(lubridate)
+```
+
+```{r}
+source('which_max.R')
+```
+
+Frequency of usage of pinchedfingers emoji
+```{r}
+freq_df<-data.frame(stringsAsFactors = F) ##dataframe of frequencies
+freq_smooth<-data.frame(stringsAsFactors = F) ##frequencies aggregated on a weekly basis
+for (i in c('de','en','es','it','ja','ko')) ##loop on the languages
+{
+  f<-read.csv(paste0("data/noRT/counts_language-",i,"_2019-01-01-to-2021-11-28.csv")) ##dataframe of the rough counts
+  for (j in setdiff(unique(colnames(f)),c("date","baseline"))) ##loop on the emojis
+  {
+    freq<-f[[j]]/f$baseline
+    freq_df<-rbind(freq_df,data.frame(counts=f[[j]],bl=f$baseline,freq=freq,lang=i,emo=j,date=f$date,stringsAsFactors = F)) ##save the frequencies
+    df<-cbind(f[,1:2],f[[j]])
+    freq_smooth <-rbind(freq_smooth, data.frame(counts=aggregate(list(counts=df$`f[[j]]`),by=list(dates=cut(as.POSIXct(df$date),"week")),sum),bl=aggregate(list(counts=df$baseline),by=list(dates=cut(as.POSIXct(df$date),"week")),sum),emo=j,lang=i,stringsAsFactors = F)) ##aggregate the counts by week
+  }
+}
+freq_df$date <- as.Date(freq_df$date, "%Y-%m-%d") ##change format of date
+freq_smooth$date <- as.Date(freq_smooth$bl.dates, "%Y-%m-%d")
+freq_smooth$counts.dates<-NULL
+freq_smooth$bl.dates<-NULL
+freq_smooth$freq<-freq_smooth$counts.counts/freq_smooth$bl.counts ##computing frequency
+
+
+ggplot(data = freq_smooth[freq_smooth$emo=='pinchedfingers'&freq_smooth$lang%in%c('it','ko','en')&freq_smooth$date>'2020-03-10',],aes(x=date,y=freq))+
+  geom_line(aes(x=date,y=freq,color=lang))+ylab('Frequency')+
+  scale_x_date(date_breaks = "1 month", date_labels =  "%m-%Y")+theme(axis.text.x=element_text(angle=60, hjust=1))
+
+```
+
+Linear model for the use of enojis before and after the pandemic (Italian)
+```{r}
+hands<-c("wavinghand","raisedhand", "raisedbackhand", "okhand", "pinchedfingers","pinchinghand","victoryhand", "crossedfingers", "loveyougesture", "signofthehorns", "backhandindexpointingup", "middlefinger", "backhandindexpointingdown", "indexpointingup", "thumbsup","thumbsdown", "raisedfist", "oncomingfist", "clappinghands", "raisinghands", "foldedhands")
+faces<-c("Grinning.Face", "Grinning.Face.with.Smiling.Eyes", "Beaming.Face.with.Smiling.Eyes",  "Slightly.Smiling.Face", "Smiling.Face.with.Heart.Eyes", "Star.Struck", "GrinningFacewithBigEyes", "SmilingFacewithSmilingEyes", "SmilingFacewithHearts", "SmilingFace", "RelievedFace", "PensiveFace", "WorriedFace", "SlightlyFrowningFace", "FrowningFace", "CryingFace", "LoudlyCryingFace", "EnragedFace", "AngryFace", "FacewithSymbolsonMouth", "AngryFacewithHorns", "FacewithMedicalMask", "FacewithThermometer", "FacewithHead.Bandage", "SneezingFace")
+newemo<-c('pinchinghand','pinchingfingers') ##emojis introduced after the start of the pandemic
+freq_df_sel<-freq_df[(!freq_df$emo%in% setdiff(hands,newemo))&(freq_df$lang=='it'),] ##selecting only frequencies of hand emojis apart from emojis introduced after the pandemic
+
+counts_all<-cbind(aggregate(list(counts=freq_df_sel$counts),by=list(date=freq_df_sel$date),sum),aggregate(list(bl.counts=freq_df_sel$bl),by=list(date=freq_df_sel$date),sum))
+counts_all$freq<-counts_all$counts/counts_all$bl.counts
+counts_all[,1]<-NULL
+model_before<-lm(freq~date,data = counts_all[counts_all$date<='2020-01-01',]) ##modelling the usage of hand emojis in 2019
+coeff_before<-coefficients(model_before)
+
+ggplot(counts_all, aes(x=date, y=freq)) + geom_point()+
+  geom_abline(intercept=coeff_before[1],slope=coeff_before[2],color='red')+
+  geom_abline(intercept=coeff_after[1],slope=coeff_after[2],color='blue')
+
+
+```
+
+Changes in the usage of hand emojis before and after the start of the pandemic
+```{r}
+newemo<-c('pinchinghand','pinchingfingers')  ##emojis introduced after the start of the pandemic
+changes<-data.frame(stringsAsFactors = F)
+for (i in c('de','en','es','it','ja','ko'))
+{
+  freq_df_sel<-freq_df[(freq_df$emo%in%setdiff(hands,newemo))&(freq_df$lang==i),] ##frequency of usage of hand emojis
+  counts_all<-cbind(aggregate(list(counts=freq_df_sel$counts),by=list(date=freq_df_sel$date),sum),aggregate(list(bl.counts=freq_df_sel$bl),by=list(date=freq_df_sel$date),sum))
+  counts_all$freq<-counts_all$counts/counts_all$bl.counts ##frequency
+  counts_all[,1]<-NULL
+  counts_all$ndays<-as.integer(rownames(counts_all))
+  model_before<-lm(freq~ndays,data = counts_all[counts_all$date<'2020-01-01',]) ##usage of hand emojis before the start of the pandemic
+  coeff_before<-coefficients(model_before)
+
+  counts_all$predicted<-(coeff_before[1]+(coeff_before[2]*counts_all$ndays)) ##predicted counts
+  counts_all$residual<-counts_all$freq-counts_all$predicted ##residuals
+  mean_residual<-mean(counts_all$residual[counts_all$date>='2020-03-01']) ##mean residual on the period after the start of the pandemic
+  t<-t.test(counts_all$freq[counts_all$date>='2020-03-01'],counts_all$predicted[counts_all$date>='2020-03-01'])
+  changes<-rbind(changes,data.frame(lang=i,mean_residual=mean_residual,perc=mean_residual/mean(counts_all$freq[counts_all$date>'2020-03-01']),pval=t$p.value,stringsAsFactors = F))
+}
+##same thing for all the languages
+freq_df_sel<-freq_df[(freq_df$emo%in%setdiff(hands,newemo)),]
+counts_all<-cbind(aggregate(list(counts=freq_df_sel$counts),by=list(date=freq_df_sel$date),sum),aggregate(list(bl.counts=freq_df_sel$bl),by=list(date=freq_df_sel$date),sum))
+counts_all$freq<-counts_all$counts/counts_all$bl.counts
+counts_all[,1]<-NULL
+counts_all$ndays<-as.integer(rownames(counts_all))
+model_before<-lm(freq~ndays,data = counts_all[counts_all$date<'2020-01-01',])
+coeff_before<-coefficients(model_before)
+
+counts_all$predicted<-(coeff_before[1]+(coeff_before[2]*counts_all$ndays))
+counts_all$residual<-abs(counts_all$freq-counts_all$predicted)
+t<-t.test(counts_all$freq[counts_all$date>='2020-03-01'],counts_all$predicted[counts_all$date>='2020-03-01'])
+mean_residual=mean(counts_all$residual[counts_all$date>='2020-03-01'])
+changes<-rbind(changes,data.frame(lang='all',change=coeff_after[2]/coeff_before[2],mean_residual=mean_residual,perc=mean_residual/mean(counts_all$freq[counts_all$date>='2020-03-01']),pval=t$p.value,stringsAsFactors = F))
+
+```
+
+Ratio of hand emojis over face emojis
+```{r}
+freq_df_sel<-freq_smooth[(freq_smooth$emo%in%setdiff(hands,newemo)),] ##smooth frequency of hand emojis minus new hand emojis
+counts_all<-cbind(aggregate(list(counts=freq_df_sel$counts),by=list(date=freq_df_sel$date),sum),aggregate(list(bl.counts=freq_df_sel$bl),by=list(date=freq_df_sel$date),sum))
+counts_all[,1]<-NULL
+
+
+freq_df_sel_faces<-freq_smooth[(freq_smooth$emo%in%faces),] ##smooth frequency of face emojis (no newly introduced emojis in this category)
+counts_all_faces<-cbind(aggregate(list(counts=freq_df_sel_faces$counts),by=list(date=freq_df_sel_faces$date),sum),aggregate(list(bl.counts=freq_df_sel_faces$bl),by=list(date=freq_df_sel_faces$date),sum))
+
+ratio_df<-data.frame(counts_hands=counts_all$counts,counts_faces=counts_all_faces$counts,bl=counts_all$bl.counts,date=counts_all$date,lang='all') #ratio of h/f emojis
+ratio_df$ratio<-ratio_df$counts_hands/ratio_df$counts_faces ##computation of the ratio
+ratio_df$ndays<-as.integer(rownames(ratio_df))
+model_before<-lm(ratio~date,data = ratio_df[ratio_df$date<'2020-01-01',]) ##model of the ratio in 2019
+coeff_before<-coefficients(model_before)
+
+ggplot(data = ratio_df,aes(x=date,y=ratio))+
+  geom_point(aes(x=date,y=ratio))+
+  geom_vline(xintercept=as.Date('2020-03-01', "%Y-%m-%d"),color='red')+
+  geom_abline(intercept=coeff_before[1],slope=coeff_before[2],color='blue')+ylab('hands/faces')+
+  scale_x_date(date_breaks = "1 month", date_labels =  "%m-%Y")+theme(axis.text.x=element_text(angle=60, hjust=1))+
+  ggtitle('Ratio of hand emojis over face emojis')
+
+
+
+```
+
+h/f ratio changes per language 
+```{r}
+change_ratio_df<-data.frame(stringsAsFactors = F)
+for (i in c('de','en','es','it','ja','ko'))
+{
+  freq_df_sel<-freq_df[(freq_df$emo%in%setdiff(hands,newemo))&(freq_df$lang==i),] ##frequency of hand emojis
+  counts_all<-cbind(aggregate(list(counts=freq_df_sel$counts),by=list(date=freq_df_sel$date),sum),aggregate(list(bl.counts=freq_df_sel$bl),by=list(date=freq_df_sel$date),sum))
+  counts_all[,1]<-NULL
+
+  freq_df_sel_faces<-freq_df[(freq_df$emo%in%faces),] ##frequency of face emojis
+  counts_all_faces<-cbind(aggregate(list(counts=freq_df_sel_faces$counts),by=list(date=freq_df_sel_faces$date),sum),aggregate(list(bl.counts=freq_df_sel_faces$bl),by=list(date=freq_df_sel_faces$date),sum))
+
+  ratio_df<-data.frame(counts_hands=counts_all$counts,counts_faces=counts_all_faces$counts,bl=counts_all$bl.counts,date=counts_all$date,lang=i) ##df of ratio per language
+  ratio_df$ratio<-ratio_df$counts_hands/ratio_df$counts_faces ##computation of the ratio
+  ratio_df$ndays<-as.integer(rownames(ratio_df))
+  model_before<-lm(ratio~ndays,data = ratio_df[ratio_df$date<'2020-01-01',]) ##model of the ratio in 2019
+  coeff_before<-coefficients(model_before)
+  
+  ratio_df$predicted<-(coeff_before[1]+(coeff_before[2]*ratio_df$ndays)) ##predicted ratio after the start of the pandemic
+  ratio_df$residual<-ratio_df$ratio-ratio_df$predicted ##computation of the residual
+  mean_residual<-mean(ratio_df$residual[ratio_df$date>='2020-03-01']) ##mean residual after the start of the pandemic
+  t<-t.test(ratio_df$ratio[ratio_df$date>='2020-03-01'],ratio_df$predicted[ratio_df$date>='2020-03-01'])
+  change_ratio_df<-rbind(change_ratio_df,data.frame(lang=i,mean_residual=mean_residual,perc=mean_residual/mean(ratio_df$ratio[ratio_df$date>='2020-03-01']),pvalue=t$p.value,stringsAsFactors = F))
+}
+##same thing with all the languages
+freq_df_sel<-freq_df[(freq_df$emo%in%setdiff(hands,newemo)),]
+counts_all<-cbind(aggregate(list(counts=freq_df_sel$counts),by=list(date=freq_df_sel$date),sum),aggregate(list(bl.counts=freq_df_sel$bl),by=list(date=freq_df_sel$date),sum))
+counts_all[,1]<-NULL
+
+freq_df_sel_faces<-freq_df[(freq_df$emo%in%faces),]
+counts_all_faces<-cbind(aggregate(list(counts=freq_df_sel_faces$counts),by=list(date=freq_df_sel_faces$date),sum),aggregate(list(bl.counts=freq_df_sel_faces$bl),by=list(date=freq_df_sel_faces$date),sum))
+
+ratio_df<-data.frame(counts_hands=counts_all$counts,counts_faces=counts_all_faces$counts,bl=counts_all$bl.counts,date=counts_all$date,lang='all')
+ratio_df$ratio<-ratio_df$counts_hands/ratio_df$counts_faces
+ratio_df$ndays<-as.integer(rownames(ratio_df))
+model_before<-lm(ratio~date,data = ratio_df[ratio_df$date<'2020-01-01',])
+coeff_before<-coefficients(model_before)
+ratio_df$predicted<-(coeff_before[1]+(coeff_before[2]*ratio_df$ndays))
+ratio_df$residual<-ratio_df$ratio-ratio_df$predicted
+mean_residual<-mean(ratio_df$residual[ratio_df$date>='2020-03-01'])
+t<-t.test(ratio_df$ratio[ratio_df$date>='2020-03-01'],ratio_df$predicted[ratio_df$date>='2020-03-01'])
+change_ratio_df<-rbind(change_ratio_df,data.frame(lang='all',mean_residual=mean_residual,perc=mean_residual/mean(ratio_df$ratio[ratio_df$date>='2020-03-01']),pvalue=t$p.value,stringsAsFactors = F))
+```
+
+Sentiment in tweets
+```{r}
+lang<-c('ar','de','en','es','fr','it','ja','ko','pt','ru','th','tr')
+sentiment<-data.frame(stringsAsFactors = F) ##dataset of sentiment
+for (i in seq(1,12)) ##loop on the languages
+{
+  sentiment_data<-read.csv(paste0("/home/anatale/Documents/PhD/Christmas paper/2021/data/sentiment/unzipped/sentiment_language-",lang[i],"_emoji-🤌_2019-01-01-to-2021-11-28.csv"))
+  sentiment_data$id<-NULL
+  res<-apply(sentiment_data,1,which_max) ##which dimention of sentiment is the highest predicted
+  t<-table(res)
+  sum<-t[1]+t[2]+t[3] ##normalization factor
+
+  sentiment<-rbind(sentiment,data.frame(lang=lang[i],count=100*(t[3]/sum),dim="pos",stringsAsFactors=F))
+  sentiment<-rbind(sentiment,data.frame(lang=lang[i],count=100*(t[1]/sum),dim="neg",stringsAsFactors=F))
+  sentiment<-rbind(sentiment,data.frame(lang=lang[i],count=100*(t[2]/sum),dim="neu",stringsAsFactors=F))
+}
+
+```
+
+
+```{r}
+sentiment1<-sentiment
+sentiment1$lang <- factor(sentiment1$lang,levels = c('ja','tr','fr','en','th','pt','de','ru','it','ar','ko','es'))
+ggplot(sentiment1, aes(x=lang, y=count, fill=dim)) +
+    geom_bar(position="fill", stat="identity",
+             colour="black", # Use black outlines,
+             size=.3) +      # Thinner lines
+  scale_fill_manual("legend", values = c("neg" = "red", "neu" = "grey", "pos" = "blue"), breaks=c("neg", "neu", "pos"),
+                       labels=c("Negative", "Neutral", "Positive"))+
+  guides(fill=guide_legend(title=NULL))+
+    xlab("Language") +
+    ylab("Percentage") +
+  scale_x_discrete(labels=c('Japanese','Turkish','French','English','Thailandese','Portuguese','German','Russian','Italian','Arabic','Korean','Spanish'))+
+    # ggtitle("Correlation of the EV retrieved dictionaries against LIWC2015") +
+    theme_bw()+theme(axis.text.x=element_text(angle=60, hjust=1))
+
+```
