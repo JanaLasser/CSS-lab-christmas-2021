@@ -9,8 +9,10 @@ output: bookdown::html_document2
 title: |
   🤌 and its meanings: An emojical study
 subtitle: CSS Lab Holiday Paper Series 2021
-date: December 28, 2021
+date: December 29, 2021
 ---
+
+*Disclaimer: this paper uses emojis from the latest standard and it might not work well in some browsers. You can find a [PDF version here.]( https://github.com/JanaLasser/CSS-lab-christmas-2021/raw/main/Emoji_HPS20201.pdf)*
 
 Non-verbal communication is not easy, but Italians are somehow better at
 it. See this video of a little Italian girl as an example:
