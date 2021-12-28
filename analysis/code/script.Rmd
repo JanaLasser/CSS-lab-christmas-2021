@@ -11,7 +11,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(dplyr)
-#library(arrow)
 library(ggplot2)
 library(lubridate)
 ```
@@ -167,7 +166,7 @@ counts_all_faces<-cbind(aggregate(list(counts=freq_df_sel_faces$counts),by=list(
 ratio_df<-data.frame(counts_hands=counts_all$counts,counts_faces=counts_all_faces$counts,bl=counts_all$bl.counts,date=counts_all$date,lang='all')
 ratio_df$ratio<-ratio_df$counts_hands/ratio_df$counts_faces
 ratio_df$ndays<-as.integer(rownames(ratio_df))
-model_before<-lm(ratio~date,data = ratio_df[ratio_df$date<'2020-01-01',])
+model_before<-lm(ratio~ndays,data = ratio_df[ratio_df$date<'2020-01-01',])
 coeff_before<-coefficients(model_before)
 ratio_df$predicted<-(coeff_before[1]+(coeff_before[2]*ratio_df$ndays))
 ratio_df$residual<-ratio_df$ratio-ratio_df$predicted
@@ -182,7 +181,7 @@ lang<-c('ar','de','en','es','fr','it','ja','ko','pt','ru','th','tr')
 sentiment<-data.frame(stringsAsFactors = F) ##dataset of sentiment
 for (i in seq(1,12)) ##loop on the languages
 {
-  sentiment_data<-read.csv(paste0("/home/anatale/Documents/PhD/Christmas paper/2021/data/sentiment/unzipped/sentiment_language-",lang[i],"_emoji-🤌_2019-01-01-to-2021-11-28.csv"))
+  sentiment_data<-read.csv(paste0("data/sentiment/unzipped/sentiment_language-",lang[i],"_emoji-🤌_2019-01-01-to-2021-11-28.csv"))
   sentiment_data$id<-NULL
   res<-apply(sentiment_data,1,which_max) ##which dimention of sentiment is the highest predicted
   t<-table(res)
