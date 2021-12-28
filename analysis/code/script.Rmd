@@ -181,7 +181,7 @@ lang<-c('ar','de','en','es','fr','it','ja','ko','pt','ru','th','tr')
 sentiment<-data.frame(stringsAsFactors = F) ##dataset of sentiment
 for (i in seq(1,12)) ##loop on the languages
 {
-  sentiment_data<-read.csv(paste0("/home/anatale/Documents/PhD/Christmas paper/2021/data/sentiment/unzipped/sentiment_language-",lang[i],"_emoji-🤌_2019-01-01-to-2021-11-28.csv"))
+  sentiment_data<-read.csv(paste0("data/sentiment/unzipped/sentiment_language-",lang[i],"_emoji-🤌_2019-01-01-to-2021-11-28.csv"))
   sentiment_data$id<-NULL
   res<-apply(sentiment_data,1,which_max) ##which dimention of sentiment is the highest predicted
   t<-table(res)
